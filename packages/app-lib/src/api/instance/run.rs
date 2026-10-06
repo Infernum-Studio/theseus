@@ -359,6 +359,9 @@ pub async fn try_update_playtime_by_instance_id(
     instance_id: &str,
 ) -> crate::Result<()> {
     let state = State::get().await?;
+    if !Settings::get(&state.pool).await?.telemetry {
+        return Ok(());
+    }
     let context =
         crate::state::instances::commands::get_instance_launch_context(
             instance_id,
