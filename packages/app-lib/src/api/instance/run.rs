@@ -60,6 +60,26 @@ pub async fn run(
 }
 
 #[tracing::instrument(skip(credentials))]
+pub async fn run_with_credentials(
+    instance_id: &str,
+    credentials: &Credentials,
+    quick_play_type: QuickPlayType,
+) -> crate::Result<ProcessMetadata> {
+    let state = State::get().await?;
+    {
+        let _priority =
+            state.content_store.legacy_migration_priority.write().await;
+        crate::state::instances::commands::migrate_legacy_content(
+            instance_id,
+            &state,
+            false,
+        )
+        .await?;
+    }
+    run_credentials(instance_id, credentials, quick_play_type).await
+}
+
+#[tracing::instrument(skip(credentials))]
 async fn run_credentials(
     instance_id: &str,
     credentials: &Credentials,

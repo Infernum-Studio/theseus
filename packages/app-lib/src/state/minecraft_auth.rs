@@ -212,6 +212,27 @@ pub struct Credentials {
     pub active: bool,
 }
 
+impl Credentials {
+    /// The credentials are never stored in the database and never refreshed.
+    pub fn offline(username: String, id: Uuid) -> Self {
+        Self {
+            offline_profile: MinecraftProfile {
+                id,
+                name: username,
+                ..MinecraftProfile::default()
+            },
+            access_token: "0".to_string(),
+            refresh_token: String::new(),
+            expires: DateTime::<Utc>::MAX_UTC,
+            active: true,
+        }
+    }
+
+    pub fn is_offline(&self) -> bool {
+        self.refresh_token.is_empty() && self.access_token == "0"
+    }
+}
+
 /// An entry in the player profile cache, keyed by player UUID.
 pub(super) enum ProfileCacheEntry {
     /// A cached profile that is valid, even though it may be stale.
@@ -454,6 +475,9 @@ impl Credentials {
     pub async fn maybe_online_profile(
         &self,
     ) -> MaybeOnlineMinecraftProfile<'_> {
+        if self.is_offline() {
+            return MaybeOnlineMinecraftProfile::Offline(&self.offline_profile);
+        }
         let online_profile = self.online_profile().await;
         online_profile.map_or_else(
             || MaybeOnlineMinecraftProfile::Offline(&self.offline_profile),
