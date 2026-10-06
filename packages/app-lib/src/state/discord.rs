@@ -99,8 +99,7 @@ impl DiscordGuard {
         &self,
         reconnect_if_fail: bool,
     ) -> crate::Result<()> {
-        // Attempt to connect if not connected. Do not continue if it fails, as the client.clear_activity can panic if it never was connected
-        if !self.retry_if_not_ready().await {
+        if !self.connected.load(std::sync::atomic::Ordering::Relaxed) {
             return Ok(());
         }
 
