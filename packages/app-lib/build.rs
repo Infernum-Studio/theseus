@@ -16,9 +16,10 @@ fn main() {
 }
 
 fn set_env() {
-    for (var_name, var_value) in
-        dotenvy::dotenv_iter().into_iter().flatten().flatten()
-    {
+    println!("cargo::rerun-if-changed=.env.infernum");
+    let env_iter = dotenvy::dotenv_iter()
+        .or_else(|_| dotenvy::from_filename_iter(".env.infernum"));
+    for (var_name, var_value) in env_iter.into_iter().flatten().flatten() {
         if var_name == "DATABASE_URL" {
             // The sqlx database URL is a build-time detail that should not be exposed to the crate
             continue;
