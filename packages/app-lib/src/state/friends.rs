@@ -14,7 +14,6 @@ use async_tungstenite::WebSocketSender;
 use async_tungstenite::tokio::{ConnectStream, connect_async};
 use async_tungstenite::tungstenite::Message;
 use async_tungstenite::tungstenite::client::IntoClientRequest;
-use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use dashmap::DashMap;
 use either::Either;
@@ -285,49 +284,6 @@ impl FriendsSocket {
         {
             emit_notification(notification).await?;
         }
-
-        Ok(())
-    }
-
-    #[tracing::instrument(skip_all)]
-    pub async fn socket_loop() -> crate::Result<()> {
-        let state = crate::State::get().await?;
-
-        tokio::task::spawn(async move {
-            let mut last_connection = Utc::now();
-            let mut last_ping = Utc::now();
-
-            loop {
-                let connected = state.friends_socket.is_connected().await;
-
-                if !connected
-                    && Utc::now().signed_duration_since(last_connection)
-                        > chrono::Duration::seconds(30)
-                {
-                    last_connection = Utc::now();
-                    last_ping = Utc::now();
-                    let _ = state
-                        .friends_socket
-                        .connect(
-                            &state.pool,
-                            &state.api_semaphore,
-                            &state.process_manager,
-                        )
-                        .await;
-                } else if connected
-                    && Utc::now().signed_duration_since(last_ping)
-                        > chrono::Duration::seconds(10)
-                {
-                    last_ping = Utc::now();
-                    let mut write = state.friends_socket.write.write().await;
-                    if let Some(write) = write.as_mut() {
-                        let _ = write.send(Message::Ping(Bytes::new())).await;
-                    }
-                }
-
-                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-            }
-        });
 
         Ok(())
     }

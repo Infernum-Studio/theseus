@@ -54,8 +54,6 @@ pub async fn authenticate_finish_flow(
         );
     }
 
-    reconnect_friends(&state).await?;
-
     Ok(creds)
 }
 
@@ -89,7 +87,6 @@ pub async fn set_active(user_id: &str) -> crate::Result<()> {
 
     creds.active = true;
     creds.upsert(&state.pool).await?;
-    reconnect_friends(&state).await?;
 
     Ok(())
 }
@@ -102,21 +99,6 @@ pub async fn remove_user(user_id: &str) -> crate::Result<()> {
 
     if current.is_some_and(|creds| creds.user_id == user_id) {
         state.friends_socket.disconnect().await?;
-    }
-
-    Ok(())
-}
-
-async fn reconnect_friends(state: &crate::State) -> crate::Result<()> {
-    if let Err(error) = state.friends_socket.disconnect().await {
-        tracing::warn!("Failed to disconnect friends socket: {error}");
-    }
-    if let Err(error) = state
-        .friends_socket
-        .connect(&state.pool, &state.api_semaphore, &state.process_manager)
-        .await
-    {
-        tracing::warn!("Failed to reconnect friends socket: {error}");
     }
 
     Ok(())
