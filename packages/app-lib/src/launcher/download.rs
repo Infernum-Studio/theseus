@@ -823,9 +823,24 @@ pub async fn download_libraries(
         io::create_dir_all(st.directories.libraries_dir()),
         io::create_dir_all(st.directories.version_natives_dir(version))
     }?;
+    let mut seen = std::collections::HashSet::new();
+    let libraries: Vec<&Library> = libraries
+        .iter()
+        .filter(|library| {
+            library.rules.as_ref().is_none_or(|rules| {
+                parse_rules(
+                    rules,
+                    java_arch,
+                    &QuickPlayType::None,
+                    minecraft_updated,
+                )
+            })
+        })
+        .filter(|library| seen.insert(library.name.as_str()))
+        .collect();
     let num_files = libraries.len();
     loading_try_for_each_concurrent(
-        stream::iter(libraries.iter()).map(Ok::<&Library, crate::Error>),
+        stream::iter(libraries.into_iter()).map(Ok::<&Library, crate::Error>),
 		Some(MINECRAFT_DOWNLOAD_CONCURRENCY),
         loading_bar,
         loading_amount,
