@@ -1,4 +1,5 @@
 use crate::{Error, ErrorKind, Result};
+use hickory_resolver::proto::rr::RData;
 use std::fmt::Display;
 use std::mem;
 use std::net::{Ipv4Addr, Ipv6Addr};
@@ -148,21 +149,15 @@ pub async fn resolve_server_address(
     }
 
     let _permit = SIMULTANEOUS_DNS_QUERIES.acquire().await?;
-    let resolver = hickory_resolver::TokioResolver::builder_tokio()?.build();
+    let resolver = hickory_resolver::TokioResolver::builder_tokio()?.build()?;
     Ok(
         match resolver.srv_lookup(format!("_minecraft._tcp.{host}")).await {
-            Err(e)
-                if e.proto()
-                    .as_ref()
-                    .is_some_and(|x| x.kind().is_no_records_found()) =>
-            {
-                None
-            }
+            Err(e) if e.is_no_records_found() => None,
             Err(e) => return Err(e.into()),
-            Ok(lookup) => lookup
-                .into_iter()
-                .next()
-                .map(|r| (r.target().to_string(), r.port())),
+            Ok(lookup) => lookup.answers().iter().find_map(|r| match &r.data {
+                RData::SRV(srv) => Some((srv.target.to_string(), srv.port)),
+                _ => None,
+            }),
         }
         .unwrap_or_else(|| (host.to_owned(), port)),
     )
