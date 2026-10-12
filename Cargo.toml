@@ -61,6 +61,7 @@ censor = "0.3.0"
 chardetng = "0.1.17"
 chrono = "0.4.42"
 chumsky = "0.9.3"
+ciborium = "0.2.2"
 cidre = { version = "0.15.0", default-features = false, features = ["macos_15_0"] }
 clap = "4.5.48"
 clickhouse = "0.14.0"
@@ -192,7 +193,6 @@ sentry = { version = "0.45.0", default-features = false, features = [
 serde = "1.0.228"
 serde-binhum = { path = "packages/serde-binhum" }
 serde_bytes = "0.11.19"
-serde_cbor = "0.11.2"
 serde_ini = "0.2.0"
 serde_json = "1.0.145"
 serde_with = "3.15.0"

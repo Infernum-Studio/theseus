@@ -5,11 +5,11 @@ edition.workspace = true
 
 [dependencies]
 chrono = { workspace = true, features = ["serde"] }
+ciborium = { workspace = true }
 either = { workspace = true }
 rand = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_bytes = { workspace = true }
-serde_cbor = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 utoipa = { workspace = true }

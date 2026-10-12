@@ -7,8 +7,11 @@ pub enum SerializationError {
     #[error("Failed to (de)serialize message: {0}")]
     SerializationFailed(#[from] serde_json::Error),
 
-    #[error("Failed to (de)serialize binary message: {0}")]
-    BinarySerializationFailed(#[from] serde_cbor::Error),
+    #[error("Failed to serialize binary message: {0}")]
+    BinarySerializationFailed(#[from] ciborium::ser::Error<std::io::Error>),
+
+    #[error("Failed to deserialize binary message: {0}")]
+    BinaryDeserializationFailed(#[from] ciborium::de::Error<std::io::Error>),
 }
 
 macro_rules! message_serialization {
@@ -28,7 +31,11 @@ macro_rules! message_serialization {
             ) -> Result<Either<String, Vec<u8>>, SerializationError> {
                 Ok(match self {
                     $(
-                        $binary_pattern => Either::Right(serde_cbor::to_vec(self)?),
+                        $binary_pattern => {
+                            let mut bytes = Vec::new();
+                            ciborium::into_writer(self, &mut bytes)?;
+                            Either::Right(bytes)
+                        }
                     )*
                     _ => Either::Left(serde_json::to_string(self)?),
                 })
@@ -39,7 +46,7 @@ macro_rules! message_serialization {
             ) -> Result<Self, SerializationError> {
                 Ok(match msg {
                     Either::Left(text) => serde_json::from_str(&text)?,
-                    Either::Right(bytes) => serde_cbor::from_slice(&bytes)?,
+                    Either::Right(bytes) => ciborium::from_reader(bytes)?,
                 })
             }
         }
